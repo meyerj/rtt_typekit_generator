@@ -4,24 +4,26 @@ if(CMAKE_MAJOR_VERSION LESS 3)
   include(${CMAKE_CURRENT_LIST_DIR}/orocos_typekit_headers-cmake2-helpers.cmake)
 endif()
 
-macro(orocos_generate_typekit_headers name target_dir)
+macro(orocos_generate_typekit_headers name)
   # For now there can be only one typekit per package:
   if(DEFINED ${PROJECT_NAME}_TYPEKITS)
     message(SEND_ERROR "orocos_generate_typekit() / orocos_generate_typekit_headers() can only be called once per CMake project!")
     return()
   endif()
 
-  set(_target_dir ${target_dir})
+  cmake_parse_arguments(_typekit "" "EXPORT;OUTPUT_DIRECTORY" "HEADERS;TYPES;NAMES;DEPENDS;LIBRARIES" ${ARGN})
   set(_typekit_NAME ${name})
-  set(_typekit_PROJECT_NAME ${name})
-  set(_typekit_TARGET ${name})
+  set(_typekit_PROJECT_NAME ${_typekit_NAME})
+  set(_typekit_TARGET ${_typekit_NAME})
   string(REPLACE "-" "_" _typekit_CNAME ${_typekit_NAME})
-  cmake_parse_arguments(_typekit "" "NAME" "HEADERS;TYPES;NAMES;DEPENDS" ${ARGN})
-  if(NOT DEFINED _typekit_NAME)
-    set(_typekit_NAME ${name})
-  endif()
   if(NOT DEFINED _typekit_INCLUDE_DIRS)
     get_directory_property(_typekit_INCLUDE_DIRS INCLUDE_DIRECTORIES)
+  endif()
+  if(NOT DEFINED _typekit_OUTPUT_DIRECTORY)
+    set(_typekit_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/rtt_typekit_generator/${_typekit_NAME})
+  endif()
+  if(DEFINED _typekit_EXPORT)
+    set(_typekit_EXPORT EXPORT ${_typekit_EXPORT})
   endif()
 
   # automatically assign type names if none were given by the user
@@ -52,23 +54,13 @@ macro(orocos_generate_typekit_headers name target_dir)
       set(_typekit_VERSION "0.0.0")
     endif()
   endif()
-#  if(NOT DEFINED _typekit_MAINTAINER)
-#    if(DEFINED ${PROJECT_NAME}_MAINTAINER)
-#      set(_typekit_MAINTAINER ${${PROECT_NAME}_MAINTAINER})
-#    else()
-#      set(_typekit_MAINTAINER "Unknown <unknown@unknown.com>")
-#    endif()
-#  endif()
-#  if(NOT DEFINED _typekit_LICENSE)
-#    set(_typekit_LICENSE "Unknown")
-#  endif()
 
   # create target directories
-  file(MAKE_DIRECTORY ${_target_dir})
-  file(MAKE_DIRECTORY ${_target_dir}/corba)
-  set(_typekit_INCLUDE_DIR ${_target_dir}/include/orocos/${_typekit_NAME}/typekit)
+  file(MAKE_DIRECTORY ${_typekit_OUTPUT_DIRECTORY})
+  file(MAKE_DIRECTORY ${_typekit_OUTPUT_DIRECTORY}/corba)
+  set(_typekit_INCLUDE_DIR ${_typekit_OUTPUT_DIRECTORY}/include/orocos/${_typekit_NAME}/typekit)
   file(MAKE_DIRECTORY ${_typekit_INCLUDE_DIR})
-  include_directories(BEFORE ${_target_dir}/include/orocos)
+  include_directories(BEFORE ${_typekit_OUTPUT_DIRECTORY}/include/orocos)
 
   # find headers and generate includes.h
   file(WRITE ${_typekit_INCLUDE_DIR}/includes.h "")
@@ -116,8 +108,8 @@ macro(orocos_generate_typekit_headers name target_dir)
   file(APPEND ${_typekit_INCLUDE_DIR}/types.h "#define C_TYPE_NAME(i) C_TYPE_NAME ## i\n")
 
   # generate CMakeLists.txt
-  configure_file(${rtt_typekit_generator_TEMPLATES_DIR}/CMakeLists.txt.in ${_target_dir}/CMakeLists.txt @ONLY)
-  configure_file(${rtt_typekit_generator_TEMPLATES_DIR}/corba/CMakeLists.txt.in ${_target_dir}/corba/CMakeLists.txt @ONLY)
+  configure_file(${rtt_typekit_generator_TEMPLATES_DIR}/CMakeLists.txt.in ${_typekit_OUTPUT_DIRECTORY}/CMakeLists.txt @ONLY)
+  configure_file(${rtt_typekit_generator_TEMPLATES_DIR}/corba/CMakeLists.txt.in ${_typekit_OUTPUT_DIRECTORY}/corba/CMakeLists.txt @ONLY)
 
   # generate Types.hpp
   set(_typekit_EXTERN_TEMPLATE_DECLARATIONS)
@@ -146,19 +138,20 @@ macro(orocos_generate_typekit_headers name target_dir)
   endif()
 
   # generate typekit plugin
-  configure_file(${rtt_typekit_generator_TEMPLATES_DIR}/typekit.cpp.in ${_target_dir}/typekit.cpp @ONLY)
+  configure_file(${rtt_typekit_generator_TEMPLATES_DIR}/typekit.cpp.in ${_typekit_OUTPUT_DIRECTORY}/typekit.cpp @ONLY)
 
   # generate CORBA transport plugin
-  configure_file(${rtt_typekit_generator_TEMPLATES_DIR}/corba/transport.cpp.in ${_target_dir}/corba/transport.cpp @ONLY)
+  configure_file(${rtt_typekit_generator_TEMPLATES_DIR}/corba/transport.cpp.in ${_typekit_OUTPUT_DIRECTORY}/corba/transport.cpp @ONLY)
 
   # create stand-alone introspection library
-  configure_file(${rtt_typekit_generator_TEMPLATES_DIR}/introspection.cpp.in ${_target_dir}/introspection.cpp @ONLY)
-  add_library(${_typekit_TARGET}_introspection SHARED ${_target_dir}/introspection.cpp)
+  configure_file(${rtt_typekit_generator_TEMPLATES_DIR}/introspection.cpp.in ${_typekit_OUTPUT_DIRECTORY}/introspection.cpp @ONLY)
+  add_library(${_typekit_TARGET}_introspection SHARED ${_typekit_OUTPUT_DIRECTORY}/introspection.cpp)
+  target_link_libraries(${_typekit_TARGET}_introspection ${_typekit_LIBRARIES})
 
   # create generator target
-#  configure_file(${rtt_typekit_generator_TEMPLATES_DIR}/generator.cpp.in ${_target_dir}/generator.cpp @ONLY)
+#  configure_file(${rtt_typekit_generator_TEMPLATES_DIR}/generator.cpp.in ${_typekit_OUTPUT_DIRECTORY}/generator.cpp @ONLY)
   add_executable(${_typekit_TARGET}_generator
-#    ${_target_dir}/generator.cpp
+#    ${_typekit_OUTPUT_DIRECTORY}/generator.cpp
     ${rtt_typekit_generator_SOURCE_DIR}/generator.cpp
     ${rtt_typekit_generator_SOURCE_DIR}/transports/corba.cpp
   )
@@ -166,40 +159,45 @@ macro(orocos_generate_typekit_headers name target_dir)
     -include ${_typekit_INCLUDE_DIR}/includes.h
     -include ${_typekit_INCLUDE_DIR}/types.h
   )
-  target_link_libraries(${_typekit_TARGET}_generator ${Boost_FILESYSTEM_LIBRARY} ${Boost_SYSTEM_LIBRARY})
-  set_target_properties(${_typekit_TARGET}_generator PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${_target_dir})
+  set_source_files_properties(
+    ${rtt_typekit_generator_SOURCE_DIR}/generator.cpp
+    ${rtt_typekit_generator_SOURCE_DIR}/transports/corba.cpp
+    OBJECT_DEPENDS ${_typekit_HEADERS_ABSOLUTE}
+  )
+  target_link_libraries(${_typekit_TARGET}_generator ${_typekit_LIBRARIES} ${Boost_FILESYSTEM_LIBRARY} ${Boost_SYSTEM_LIBRARY})
+  set_target_properties(${_typekit_TARGET}_generator PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${_typekit_OUTPUT_DIRECTORY})
   get_target_property(${_typekit_TARGET}_generator_LOCATION ${_typekit_TARGET}_generator LOCATION)
 
   # create generate target
   add_custom_command(
-    OUTPUT ${_target_dir}/stamp
+    OUTPUT ${_typekit_OUTPUT_DIRECTORY}/stamp
     COMMAND ${${_typekit_TARGET}_generator_LOCATION}
     COMMAND touch stamp
     DEPENDS ${_typekit_TARGET}_generator ${_typekit_HEADERS_ABSOLUTE}
-    WORKING_DIRECTORY "${_target_dir}"
+    WORKING_DIRECTORY "${_typekit_OUTPUT_DIRECTORY}"
     VERBATIM
-    COMMENT "Generating code for typekit ${name}..."
+    COMMENT "Generating code for typekit ${_typekit_NAME}..."
   )
-  add_custom_target(${name}_generate_typekit ALL
-    DEPENDS ${_target_dir}/stamp
+  add_custom_target(${_typekit_TARGET}_generate_typekit ALL
+    DEPENDS ${_typekit_OUTPUT_DIRECTORY}/stamp
   )
 
   # add generated typekit to the clean target
 #  set_property(DIRECTORY
 #    APPEND PROPERTY ADDITIONAL_MAKE_CLEAN_FILES
-#    ${_target_dir}/types.h
-#    ${_target_dir}/includes.h
-#    ${_target_dir}/CMakeLists.txt
-#    ${_target_dir}/Types.hpp
-#    ${_target_dir}/typekit.cpp
-#    ${_target_dir}/introspection.cpp
-#    ${_target_dir}/generator.cpp
+#    ${_typekit_OUTPUT_DIRECTORY}/types.h
+#    ${_typekit_OUTPUT_DIRECTORY}/includes.h
+#    ${_typekit_OUTPUT_DIRECTORY}/CMakeLists.txt
+#    ${_typekit_OUTPUT_DIRECTORY}/Types.hpp
+#    ${_typekit_OUTPUT_DIRECTORY}/typekit.cpp
+#    ${_typekit_OUTPUT_DIRECTORY}/introspection.cpp
+#    ${_typekit_OUTPUT_DIRECTORY}/generator.cpp
 #  )
 
   # export some variables
-  set(${name}_OUTPUT_DIRECTORY ${_target_dir})
-  set(${name}_EXPORTED_TARGETS ${name}_generate_typekit)
-  set(${PROJECT_NAME}_TYPEKITS ${${PROJECT_NAME}_TYPEKITS} ${_name})
+  set(${_typekit_TARGET}_OUTPUT_DIRECTORY ${_typekit_OUTPUT_DIRECTORY})
+  set(${_typekit_TARGET}_EXPORTED_TARGETS ${_typekit_TARGET}_generate_typekit)
+  set(${PROJECT_NAME}_TYPEKITS ${${PROJECT_NAME}_TYPEKITS} ${_typekit_NAME})
   set(${PROJECT_NAME}_TYPEKIT_TYPES ${${PROJECT_NAME}_TYPEKIT_TYPES} ${_typekit_TYPES})
 
   # cleanup internal variables
@@ -207,16 +205,18 @@ macro(orocos_generate_typekit_headers name target_dir)
   unset(_header_ABSOLUTE)
   unset(_message)
   unset(_name)
-  unset(_target_dir)
   unset(_type)
   unset(_typekit_CNAME)
   unset(_typekit_DEPENDS)
   unset(_typekit_EXTERN_TEMPLATE_DECLARATIONS)
+  unset(_typekit_EXPORT)
   unset(_typekit_HEADERS)
   unset(_typekit_HEADERS_ABSOLUTE)
   unset(_typekit_INCLUDES)
+  unset(_typekit_LIBRARIES)
   unset(_typekit_NAME)
   unset(_typekit_NAMES)
+  unset(_typekit_OUTPUT_DIRECTORY)
   unset(_typekit_PROJECT_NAME)
   unset(_typekit_TARGET)
   unset(_typekit_TYPES)
@@ -225,75 +225,9 @@ macro(orocos_generate_typekit_headers name target_dir)
   unset(_typekit_VERSION)
 endmacro()
 
-#macro(orocos_typekit_headers name)
-#  # Generate the typekit
-#  orocos_generate_typekit_headers(${name} "${CMAKE_CURRENT_BINARY_DIR}/${name}" ${ARGN})
-
-#  # Export the cmake environment for the deferred build step
-#  _export_cache("${${name}_OUTPUT_DIRECTORY}/cache.cmake")
-#  _export_variables("${${name}_OUTPUT_DIRECTORY}/variables.cmake" CACHE INTERNAL "\"\"")
-
-#  # Build the typekit
-#  add_custom_command(
-#    OUTPUT "${${name}_OUTPUT_DIRECTORY}/build"
-#    COMMAND "${CMAKE_COMMAND}"
-#      -E make_directory "${${name}_OUTPUT_DIRECTORY}/build"
-#    COMMENT "Creating build directory..."
-#    VERBATIM
-#  )
-#  add_custom_command(
-#    OUTPUT "${${name}_OUTPUT_DIRECTORY}/build/CMakeCache.txt"
-#    COMMAND "${CMAKE_COMMAND}"
-#      #"--trace"
-#      #-C "${${name}_OUTPUT_DIRECTORY}/cache.cmake"
-#      -C "${${name}_OUTPUT_DIRECTORY}/variables.cmake"
-#      -UCMAKE_HOME_DIRECTORY
-#      -DUSE_OROCOS_RTT=False
-#      -DORO_USE_ROSBUILD=OFF
-#      -DORO_USE_CATKIN=OFF
-#      "-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=${CMAKE_LIBRARY_OUTPUT_DIRECTORY}"
-#      ..
-#    DEPENDS ${${name}_EXPORTED_TARGETS} "${${name}_OUTPUT_DIRECTORY}/build"
-#    WORKING_DIRECTORY "${${name}_OUTPUT_DIRECTORY}/build"
-#    COMMENT "Configuring typekit '${name}'..."
-#    VERBATIM
-#  )
-#  add_custom_target(${name}_configure
-#    DEPENDS "${${name}_OUTPUT_DIRECTORY}/build/CMakeCache.txt"
-#  )
-#  add_custom_target(${name} ALL
-#    "${CMAKE_COMMAND}"
-#      --build "${${name}_OUTPUT_DIRECTORY}/build"
-#    DEPENDS ${name}_configure
-#    WORKING_DIRECTORY "${${name}_OUTPUT_DIRECTORY}/build"
-#    COMMENT "Building typekit '${name}'..."
-#    VERBATIM
-#  )
-
-#  # Install the typekit
-#  install(CODE "execute_process(
-#      \"${CMAKE_COMMAND}\"
-#      --build \"${${name}_OUTPUT_DIRECTORY}/build\"
-#      --target install
-#      WORKING_DIRECTORY \"${${name}_OUTPUT_DIRECTORY}/build\"
-#    )")
-
-#  # add generated typekit to the clean target
-#  set_property(DIRECTORY
-#    APPEND PROPERTY ADDITIONAL_MAKE_CLEAN_FILES
-#    "${${name}_OUTPUT_DIRECTORY}/build"
-#  )
-#endmacro()
-
 macro(orocos_typekit_headers name)
-  # Generate the typekit
-  orocos_generate_typekit_headers(${name} "${CMAKE_CURRENT_BINARY_DIR}/${name}" ${ARGN})
-  add_subdirectory("${CMAKE_CURRENT_BINARY_DIR}/${name}" ${name})
-#  orocos_typekit(${name} "${CMAKE_CURRENT_BINARY_DIR}/${name}/typekit.cpp")
-#  add_dependencies(${name} ${name}_EXPORTED_TARGETS)
-
-#  install(
-#    FILES ${${name}_OUTPUT_DIRECTORY}/Types.hpp
-#    DESTINATION include/orocos/${PROJECT_NAME}/typekit
-#  )
+  # Generate...
+  orocos_generate_typekit_headers(${name} OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/rtt_typekit_generator/${name} ${ARGN})
+  # ... and build the typekit
+  add_subdirectory(${CMAKE_CURRENT_BINARY_DIR}/rtt_typekit_generator/${name} rtt_typekit_generator/${name})
 endmacro()

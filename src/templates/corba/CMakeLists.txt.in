@@ -44,12 +44,13 @@ orocos_typekit(@_typekit_TARGET@-transport-corba
     transport.cpp
     ${CORBA_FILES})
 target_link_libraries(@_typekit_TARGET@-transport-corba
+    @_typekit_LIBRARIES@
     @_typekit_TARGET@-typekit ${OROCOS-RTT_CORBA_LIBRARIES})
 
 # Generate the @_typekit_PROJECT_NAME@-transport-corba Orocos package
 orocos_generate_package(
-  @_typekit_PROJECT_NAME@-transport-corba
-  DEPENDS_TARGETS @_typekit_PROJECT_NAME@
+  @_typekit_PROJECT_NAME@-transport-corba-${OROCOS_TARGET}
+  DEPENDS_TARGETS @_typekit_PROJECT_NAME@-typekit
   INCLUDE_DIRS @_typekit_INCLUDE_DIRS@
   VERSION @_typekit_VERSION@
 )

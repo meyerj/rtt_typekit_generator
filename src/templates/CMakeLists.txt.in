@@ -14,8 +14,9 @@ endif()
 include(${OROCOS-RTT_USE_FILE_PATH}/UseOROCOS-RTT.cmake)
 
 # Build the typekit
-orocos_typekit(@_typekit_TARGET@-typekit typekit.cpp)
+orocos_typekit(@_typekit_TARGET@-typekit typekit.cpp @_typekit_EXPORT@)
 add_dependencies(@_typekit_TARGET@-typekit ${@_typekit_TARGET@_EXPORTED_TARGETS})
+target_link_libraries(@_typekit_TARGET@-typekit @_typekit_LIBRARIES@)
 
 # Install header files
 install(
@@ -30,6 +31,7 @@ endif()
 
 # Generate the @_typekit_PROJECT_NAME@ Orocos package
 orocos_generate_package(
+  @_typekit_PROJECT_NAME@-typekit-${OROCOS_TARGET}
   INCLUDE_DIRS @_typekit_INCLUDE_DIRS@
   VERSION @_typekit_VERSION@
 )
