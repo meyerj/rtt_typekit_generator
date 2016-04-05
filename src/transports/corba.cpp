@@ -107,23 +107,25 @@ void IDLPartGenerator<T>::generate(std::ostream *_stream) {
     module_context_ = &c;
 
     stream() << "// type '" << getTypeName() << "'" << std::endl;
+    stream() << indent(2) << "module rtt_typekit_generator {" << std::endl;
     for(Namespaces::const_iterator it = getNamespaces().begin();
         it != getNamespaces().end();
         ++it) {
         stream() << indent(2) << "module " << *it << " {" << std::endl;
     }
-
     stream() << indent(2) << "module corba {" << std::endl;
+
     stream() << indent();
     generateStruct() << ";" << std::endl;
-    stream() << indent(-2) << "};" << std::endl;
 
+    stream() << indent(-2) << "};" << std::endl;
     for(Namespaces::const_iterator it = getNamespaces().begin();
         it != getNamespaces().end();
         ++it) {
         stream() << indent(-2) << "};" << std::endl;
     }
 
+    stream() << indent(-2) << "};" << std::endl;
     stream() << std::endl;
     module_context_ = 0;
 }
