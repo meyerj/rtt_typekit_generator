@@ -154,6 +154,7 @@ macro(orocos_generate_typekit_headers name)
 #    ${_typekit_OUTPUT_DIRECTORY}/generator.cpp
     ${rtt_typekit_generator_SOURCE_DIR}/generator.cpp
     ${rtt_typekit_generator_SOURCE_DIR}/transports/corba.cpp
+    ${rtt_typekit_generator_SOURCE_DIR}/transports/corba-types.cpp
   )
   target_compile_options(${_typekit_TARGET}_generator PRIVATE
     -include ${_typekit_INCLUDE_DIR}/includes.h

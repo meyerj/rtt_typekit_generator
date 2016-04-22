@@ -23,7 +23,7 @@ struct Vector {
     std::vector<std::string> strings;
 };
 
-struct Foo {
+struct NestedStruct {
     double x;
     double y;
     double z;
@@ -60,7 +60,7 @@ namespace serialization {
 
 template <class Archive>
 void serialize(Archive& ar, foo::Simple& v, const unsigned int /* version */) {
-    ar & v.member;
+    ar & boost::serialization::make_nvp("member", v.member);
 }
 
 template <class Archive>
@@ -69,14 +69,14 @@ void serialize(Archive& ar, foo::Vector& v, const unsigned int /* version */) {
 }
 
 template <class Archive>
-void serialize(Archive& ar, foo::Foo::Bar& v, const unsigned int /* version */) {
+void serialize(Archive& ar, foo::NestedStruct::Bar& v, const unsigned int /* version */) {
     ar & boost::serialization::make_nvp("a", v.a);
     ar & boost::serialization::make_nvp("b", v.b);
     ar & boost::serialization::make_nvp("c", v.c);
 }
 
 template <class Archive>
-void serialize(Archive& ar, foo::Foo& v, const unsigned int /* version */) {
+void serialize(Archive& ar, foo::NestedStruct& v, const unsigned int /* version */) {
     ar & boost::serialization::make_nvp("x", v.x);
     ar & boost::serialization::make_nvp("y", v.y);
     ar & boost::serialization::make_nvp("z", v.z);
@@ -98,5 +98,35 @@ void serialize(Archive& ar, foo::NestedKDL& v, const unsigned int /* version */)
 
 }  // namespace serialization
 }  // namespace boost
+
+namespace rtt_typekit_generator {
+namespace corba {
+
+static std::string accessor(foo::EigenVector &, const std::string &value, const std::string &member) {
+    return value + "." + member + "()";
+}
+
+static std::string accessor(KDL::Vector &, const std::string &value, const std::string &member) {
+    if (member == "X") return value + "[0]";
+    if (member == "Y") return value + "[1]";
+    if (member == "Z") return value + "[2]";
+    throw std::runtime_error("Unexpected member '" + member + "' of type KDL::Vector");
+}
+
+static std::string accessor(KDL::Rotation &, const std::string &value, const std::string &member) {
+    if (member == "X_x") return value + ".data[0]";
+    if (member == "X_y") return value + ".data[3]";
+    if (member == "X_z") return value + ".data[6]";
+    if (member == "Y_x") return value + ".data[1]";
+    if (member == "Y_y") return value + ".data[4]";
+    if (member == "Y_z") return value + ".data[7]";
+    if (member == "Z_x") return value + ".data[2]";
+    if (member == "Z_y") return value + ".data[5]";
+    if (member == "Z_z") return value + ".data[8]";
+    throw std::runtime_error("Unexpected member '" + member + "' of type KDL::Vector");
+}
+
+}
+}
 
 #endif // RTT_TYPEKIT_GENERATOR_TESTS_INCLUDE_FOO_H

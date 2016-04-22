@@ -7,12 +7,49 @@
 #include <@_typekit_NAME@/typekit/includes.h>
 #include <@_typekit_NAME@/typekit/types.h>
 
+#include "Conversions.hpp"
+
 #include <rtt/transports/corba/CorbaLib.hpp>
 #include <rtt/transports/corba/CorbaTemplateProtocol.hpp>
 #include <rtt/types/TransportPlugin.hpp>
 #include <rtt/types/TypekitPlugin.hpp>
 
 #include <boost/preprocessor.hpp>
+
+#define ANY_CONVERSION(z, i, _2) \
+    namespace RTT { \
+      namespace corba { \
+        template <> \
+        struct AnyConversion< TYPE(i) > \
+        { \
+            typedef ::rtt_typekit_generator::corba::TYPE(i) CorbaType; \
+            typedef TYPE(i) BaseType; \
+            \
+            static bool update(const CORBA::Any& any, BaseType& tp) \
+            { \
+                CorbaType* corba; \
+                if (!(any >>= corba)) return false; \
+                return ::rtt_typekit_generator::fromCORBA(tp, *corba); \
+            } \
+            \
+            static CORBA::Any_ptr createAny( BaseType const& tp ) \
+            { \
+                std::auto_ptr< CORBA::Any > ret( new CORBA::Any() ); \
+                if (!updateAny(tp, *ret)) return 0; \
+                return ret.release(); \
+            } \
+            \
+            static bool updateAny( BaseType const& value, CORBA::Any& any ) \
+            { \
+                std::auto_ptr<CorbaType> corba( new CorbaType ); \
+                if (!orogen_typekits::toCORBA(*corba, value)) return false; \
+                any <<= corba.release(); \
+                return true; \
+            } \
+        }; \
+      } \
+    } \
+BOOST_PP_REPEAT(TYPE_CNT, ANY_CONVERSION, BOOST_PP_EMPTY);
 
 class @_typekit_CNAME@CorbaTransportPlugin
     : public RTT::types::TransportPlugin

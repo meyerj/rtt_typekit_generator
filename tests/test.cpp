@@ -5,7 +5,7 @@
 
 namespace rtt_typekit_generator {
 
-extern details::TypeIntrospection<foo::Foo> type0;
+extern details::TypeIntrospection<foo::NestedStruct> type0;
 extern details::TypeIntrospection<foo::Simple> type1;
 
 }
@@ -13,9 +13,9 @@ extern details::TypeIntrospection<foo::Simple> type1;
 using namespace rtt_typekit_generator;
 
 TEST(StructTest, Basics) {
-    EXPECT_EQ(type0.getTypeName(), "foo.Foo");
-    EXPECT_EQ(type0.getTypeId(), &typeid(foo::Foo));
-    EXPECT_STREQ(type0.getTypeIdName(), typeid(foo::Foo).name());
+    EXPECT_EQ(type0.getTypeName(), "foo.NestedStruct");
+    EXPECT_EQ(type0.getTypeId(), &typeid(foo::NestedStruct));
+    EXPECT_STREQ(type0.getTypeIdName(), typeid(foo::NestedStruct).name());
 
     EXPECT_TRUE(type0.isStruct());
     EXPECT_TRUE(type0.getMembers());
@@ -27,7 +27,7 @@ TEST(StructTest, Members) {
     ASSERT_TRUE(type0.getMember("y"));
     ASSERT_TRUE(type0.getMember("z"));
 
-    foo::Foo obj;
+    foo::NestedStruct obj;
     obj.x = 1.0;
     obj.y = 2.0;
     obj.z = 3.0;

@@ -102,7 +102,11 @@ public:
     virtual std::string getTypeName() const { return type_name_; }
     virtual const Namespaces &getNamespaces() const { return namespaces_; }
     virtual std::string getCTypeName() const { return c_type_name_; }
+    virtual std::string getCFullName() const;
+    virtual std::string getCCorbaName() const;
     virtual std::string getPartName() const = 0;
+
+    virtual void setNamespacePrefix(const std::string &prefix);
 
     virtual void generate(std::ostream *stream) = 0;
 
@@ -117,10 +121,14 @@ protected:
     ContextStack *context_stack_;
     template <typename ContextDataT> friend class Context_;
 
-private:
+    typedef std::map<std::string, std::string> AttributesMap;
+    std::string stripAttributes(std::string name_and_attributes, AttributesMap &attributes);
+
+protected:
     std::string type_name_;
     Namespaces namespaces_;
     std::string c_type_name_;
+    boost::shared_ptr<std::string> namespace_prefix_;
 
     PartGeneratorBase *parent_;
 

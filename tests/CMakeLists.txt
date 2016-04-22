@@ -12,7 +12,7 @@ include_directories(${kdl_typekit_INCLUDE_DIRS})
 orocos_typekit_headers(
   foo-types
   HEADERS foo.h
-  TYPES foo::Simple foo::Vector foo::Foo foo::EigenVector foo::NestedKDL
+  TYPES foo::Simple foo::Vector foo::NestedStruct foo::EigenVector foo::NestedKDL
 )
 
 enable_testing()
