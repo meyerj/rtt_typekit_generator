@@ -3,8 +3,8 @@
  *  All rights reserved.                                                      *
  ******************************************************************************/
 
-#ifndef RTT_TYPEKIT_GENERATOR_CORBA_TYPES_H
-#define RTT_TYPEKIT_GENERATOR_CORBA_TYPES_H
+#ifndef RTT_TYPEKIT_GENERATOR_CORBA_TRANSPORTS_CORBA_CORBA_TYPES_H
+#define RTT_TYPEKIT_GENERATOR_CORBA_TRANSPORTS_CORBA_CORBA_TYPES_H
 
 #include <boost/type_traits/integral_constant.hpp>
 #include <boost/preprocessor/seq/enum.hpp>
@@ -27,35 +27,6 @@ struct Type {
     static const char *getTypeName() { return "(unknown)"; }
     static const char *getCTypeName() { return ""; }
     static const char *getIDLTypeName() { return "any"; }
-};
-
-template <typename T>
-static std::string accessor(T &, const std::string &value) {
-    return value;
-}
-template <typename T>
-static std::string accessor(T &, const std::string &value, const std::string &member_name) {
-    return value + "." + member_name;
-}
-
-template <typename T>
-struct ToCORBA {
-    std::string operator()(const std::string &corba, const std::string &accessor) {
-        return corba + " = " + accessor;
-    }
-    std::string operator()(const std::string &corba, const std::string &member_name, const std::string &accessor) {
-        return corba + "." + member_name + " = " + accessor;
-    }
-};
-
-template <typename T>
-struct FromCORBA {
-    std::string operator()(const std::string &accessor, const std::string &corba) {
-        return accessor + " = " + corba;
-    }
-    std::string operator()(const std::string &accessor, const std::string &corba, const std::string &member_name) {
-        return accessor + " = " + corba + "." + member_name;
-    }
 };
 
 #define DEFINE_NATIVE_CORBA_TYPE(_type, _name, _idl_name) \
@@ -84,7 +55,7 @@ struct FromCORBA {
         static const char *getTypeName() { return _name; } \
         static const char *getCTypeName() { return #_type; } \
         static const char *getIDLTypeName() { return _idl_name; } \
-    }
+    } \
 
 DEFINE_NATIVE_CORBA_TYPE(float, "float", "float");
 DEFINE_NATIVE_CORBA_TYPE(double, "double", "double");
@@ -102,7 +73,7 @@ DEFINE_NATIVE_CORBA_TYPE(unsigned char, "unsigned char", "octet");
 DEFINE_NATIVE_CORBA_TYPE_TEMPLATE(std::basic_string, "string", "string", (class Traits)(class Alloc), (char)(Traits)(Alloc));
 DEFINE_NATIVE_CORBA_TYPE_TEMPLATE(std::basic_string, "wstring", "wstring", (class Traits)(class Alloc), (wchar_t)(Traits)(Alloc));
 
-// Sequence types
+// Specialized Type<T> for sequence types
 template <typename T>
 struct Type< std::vector<T> > {
     typedef std::vector<T> type;
@@ -116,18 +87,78 @@ struct Type< std::vector<T> > {
     static const char *getIDLTypeName() { Type<T>::getIDLTypeName(); }
 };
 
-// String types
-template <typename CharT, class Traits, class Alloc>
-struct ToCORBA< std::basic_string<CharT, Traits, Alloc> > {
-    std::string operator()(const std::string &corba, const std::string &accessor) {
-        return corba + " = " + accessor + ".c_str()";
+// accessor template function
+template <typename T>
+static std::string accessor(T &, const std::string &value, const std::string &member = std::string()) {
+    if (member.empty()) {
+        return value;
+    } else {
+        return value + "." + member;
     }
-    std::string operator()(const std::string &corba, const std::string &member_name, const std::string &accessor) {
-        return corba + "." + member_name + " = " + accessor + ".c_str()";
+}
+
+// ToCORBA<T> generator template
+template <typename T>
+struct ToCORBA {
+    std::string operator()(const std::string &accessor, const std::string &corba,
+                           const std::string &member = std::string(),
+                           const std::string &index = std::string()) {
+        std::string index_suffix;
+        if (!index.empty()) index_suffix = "[" + index + "]";
+        if (!member.empty()) {
+            return "if (!toCORBA(" + corba + "." + member + index_suffix + ", " + accessor + index_suffix + ")) return false;";
+        } else {
+            return "if (!toCORBA(" + corba + index_suffix + ", " + accessor + index_suffix + ")) return false;";
+        }
     }
 };
+
+// toCORBA() template function
+template <typename T, typename CorbaType>
+inline bool toCORBA(CorbaType &corba, const T &value) {
+    corba = value;
+    return true;
+}
+
+// Overload toCorba() function for string types
+template <typename CharT, class Traits, class Alloc, typename CorbaType>
+bool toCORBA(CorbaType &corba, const std::basic_string<CharT, Traits, Alloc> &value) {
+    corba = value.c_str();
+    return true;
+}
+
+// Overload toCorba() function for string types and constant corba objects
+template <typename CharT, class Traits, class Alloc, typename CorbaType>
+bool toCORBA(const CorbaType &corba, const std::basic_string<CharT, Traits, Alloc> &value) {
+    CorbaType reference(corba);
+    reference = value.c_str();
+    return true;
+}
+
+// FromCORBA generator template
+template <typename T>
+struct FromCORBA {
+    std::string operator()(const std::string &accessor, const std::string &corba,
+                           const std::string &member = std::string(),
+                           const std::string &index = std::string()) {
+        std::string index_suffix;
+        if (!index.empty()) index_suffix = "[" + index + "]";
+        if (!member.empty()) {
+            return "if (!fromCORBA(" + accessor + index_suffix + ", " + corba + "." + member + index_suffix + ")) return false;";
+        } else {
+            return "if (!fromCORBA(" + accessor + index_suffix + ", " + corba + index_suffix + ")) return false;";
+        }
+    }
+};
+
+// fromCORBA() template function
+template <typename T, typename CorbaType>
+inline bool fromCORBA(T &value, const CorbaType &corba) {
+    value = corba;
+    return true;
+}
 
 }  // namespace corba
 }  // namespace rtt_typekit_generator
 
-#endif // RTT_TYPEKIT_GENERATOR_CORBA_TYPES_H
+#endif // RTT_TYPEKIT_GENERATOR_CORBA_TRANSPORTS_CORBA_CORBA_TYPES_H

@@ -97,15 +97,26 @@ macro(orocos_generate_typekit_headers name)
     if(NOT _name)
       string(REPLACE "::" "." _name ${_type})
     endif()
-    file(APPEND ${_typekit_INCLUDE_DIR}/types.h "#define TYPE${_i} ${_type}\n")
-    file(APPEND ${_typekit_INCLUDE_DIR}/types.h "#define TYPE_NAME${_i} \"${_name}\"\n")
-    file(APPEND ${_typekit_INCLUDE_DIR}/types.h "#define C_TYPE_NAME${_i} \"${_type}\"\n")
+    string(REPLACE "::" "_" _variable ${_type})
+    if(_type MATCHES "::")
+      string(REGEX REPLACE "(.*)::(.*)" "\\1::corba::\\2" _corba_type ${_type})
+    else()
+      set(_corba_type "corba::${_type}")
+    endif()
+
+    file(APPEND ${_typekit_INCLUDE_DIR}/types.h "#define TYPE_${_i} ${_type}\n")
+    file(APPEND ${_typekit_INCLUDE_DIR}/types.h "#define TYPE_NAME_${_i} \"${_name}\"\n")
+    file(APPEND ${_typekit_INCLUDE_DIR}/types.h "#define C_TYPE_NAME_${_i} \"${_type}\"\n")
+    file(APPEND ${_typekit_INCLUDE_DIR}/types.h "#define C_VARIABLE_${_i} ${_typekit_CNAME}_${_variable}\n")
+    file(APPEND ${_typekit_INCLUDE_DIR}/types.h "#define CORBA_TYPE_${_i} ${_corba_type}\n")
   endforeach()
   file(APPEND ${_typekit_INCLUDE_DIR}/types.h "\n#define TYPE_CNT ${_typekit_TYPES_length1}\n")
   file(APPEND ${_typekit_INCLUDE_DIR}/types.h "#define TYPE_NAME_CNT ${_typekit_TYPES_length1}\n")
-  file(APPEND ${_typekit_INCLUDE_DIR}/types.h "\n#define TYPE(i) TYPE ## i\n")
-  file(APPEND ${_typekit_INCLUDE_DIR}/types.h "#define TYPE_NAME(i) TYPE_NAME ## i\n")
-  file(APPEND ${_typekit_INCLUDE_DIR}/types.h "#define C_TYPE_NAME(i) C_TYPE_NAME ## i\n")
+  file(APPEND ${_typekit_INCLUDE_DIR}/types.h "\n#define TYPE(i) TYPE_ ## i\n")
+  file(APPEND ${_typekit_INCLUDE_DIR}/types.h "#define TYPE_NAME(i) TYPE_NAME_ ## i\n")
+  file(APPEND ${_typekit_INCLUDE_DIR}/types.h "#define C_TYPE_NAME(i) C_TYPE_NAME_ ## i\n")
+  file(APPEND ${_typekit_INCLUDE_DIR}/types.h "#define C_VARIABLE(i) C_VARIABLE_ ## i\n")
+  file(APPEND ${_typekit_INCLUDE_DIR}/types.h "#define CORBA_TYPE(i) CORBA_TYPE_ ## i\n")
 
   # generate CMakeLists.txt
   configure_file(${rtt_typekit_generator_TEMPLATES_DIR}/CMakeLists.txt.in ${_typekit_OUTPUT_DIRECTORY}/CMakeLists.txt @ONLY)
@@ -153,8 +164,8 @@ macro(orocos_generate_typekit_headers name)
   add_executable(${_typekit_TARGET}_generator
 #    ${_typekit_OUTPUT_DIRECTORY}/generator.cpp
     ${rtt_typekit_generator_SOURCE_DIR}/generator.cpp
-    ${rtt_typekit_generator_SOURCE_DIR}/transports/corba.cpp
-    ${rtt_typekit_generator_SOURCE_DIR}/transports/corba-types.cpp
+    ${rtt_typekit_generator_SOURCE_DIR}/transports/corba/corba.cpp
+    ${rtt_typekit_generator_SOURCE_DIR}/transports/corba/corba-types.cpp
   )
   target_compile_options(${_typekit_TARGET}_generator PRIVATE
     -include ${_typekit_INCLUDE_DIR}/includes.h
@@ -163,7 +174,7 @@ macro(orocos_generate_typekit_headers name)
   set_source_files_properties(
     ${rtt_typekit_generator_SOURCE_DIR}/generator.cpp
     ${rtt_typekit_generator_SOURCE_DIR}/transports/corba.cpp
-    OBJECT_DEPENDS ${_typekit_HEADERS_ABSOLUTE}
+    OBJECT_DEPENDS "${_typekit_HEADERS_ABSOLUTE};${_typekit_INCLUDE_DIR}/types.h;${_typekit_INCLUDE_DIR}/includes.h"
   )
   target_link_libraries(${_typekit_TARGET}_generator ${_typekit_LIBRARIES} ${Boost_FILESYSTEM_LIBRARY} ${Boost_SYSTEM_LIBRARY})
   set_target_properties(${_typekit_TARGET}_generator PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${_typekit_OUTPUT_DIRECTORY})
@@ -174,7 +185,7 @@ macro(orocos_generate_typekit_headers name)
     OUTPUT ${_typekit_OUTPUT_DIRECTORY}/stamp
     COMMAND ${${_typekit_TARGET}_generator_LOCATION}
     COMMAND touch stamp
-    DEPENDS ${_typekit_TARGET}_generator ${_typekit_HEADERS_ABSOLUTE}
+    DEPENDS ${_typekit_TARGET}_generator
     WORKING_DIRECTORY "${_typekit_OUTPUT_DIRECTORY}"
     VERBATIM
     COMMENT "Generating code for typekit ${_typekit_NAME}..."
@@ -202,11 +213,13 @@ macro(orocos_generate_typekit_headers name)
   set(${PROJECT_NAME}_TYPEKIT_TYPES ${${PROJECT_NAME}_TYPEKIT_TYPES} ${_typekit_TYPES})
 
   # cleanup internal variables
+  unset(_corba_type)
   unset(_header)
   unset(_header_ABSOLUTE)
   unset(_message)
   unset(_name)
   unset(_type)
+  unset(_variable)
   unset(_typekit_CNAME)
   unset(_typekit_DEPENDS)
   unset(_typekit_EXTERN_TEMPLATE_DECLARATIONS)

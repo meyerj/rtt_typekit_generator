@@ -9,6 +9,7 @@
 
 #include "Conversions.hpp"
 
+#include <rtt/transports/corba/CorbaConversion.hpp>
 #include <rtt/transports/corba/CorbaLib.hpp>
 #include <rtt/transports/corba/CorbaTemplateProtocol.hpp>
 #include <rtt/types/TransportPlugin.hpp>
@@ -16,53 +17,56 @@
 
 #include <boost/preprocessor.hpp>
 
-#define ANY_CONVERSION(z, i, _2) \
+#define ANY_CONVERSION(z, i, _) \
     namespace RTT { \
-      namespace corba { \
-        template <> \
-        struct AnyConversion< TYPE(i) > \
-        { \
-            typedef ::rtt_typekit_generator::corba::TYPE(i) CorbaType; \
-            typedef TYPE(i) BaseType; \
-            \
-            static bool update(const CORBA::Any& any, BaseType& tp) \
+        namespace corba { \
+            template <> \
+            struct AnyConversion< ::TYPE(i) > \
             { \
-                CorbaType* corba; \
-                if (!(any >>= corba)) return false; \
-                return ::rtt_typekit_generator::fromCORBA(tp, *corba); \
-            } \
-            \
-            static CORBA::Any_ptr createAny( BaseType const& tp ) \
-            { \
-                std::auto_ptr< CORBA::Any > ret( new CORBA::Any() ); \
-                if (!updateAny(tp, *ret)) return 0; \
-                return ret.release(); \
-            } \
-            \
-            static bool updateAny( BaseType const& value, CORBA::Any& any ) \
-            { \
-                std::auto_ptr<CorbaType> corba( new CorbaType ); \
-                if (!orogen_typekits::toCORBA(*corba, value)) return false; \
-                any <<= corba.release(); \
-                return true; \
-            } \
-        }; \
-      } \
-    } \
-BOOST_PP_REPEAT(TYPE_CNT, ANY_CONVERSION, BOOST_PP_EMPTY);
+                typedef ::rtt_typekit_generator::CORBA_TYPE(i) CorbaType; \
+                typedef ::TYPE(i) BaseType; \
+                \
+                static bool update(const CORBA::Any& any, BaseType& tp) \
+                { \
+                    CorbaType* corba; \
+                    if (!(any >>= corba)) return false; \
+                    return ::rtt_typekit_generator::corba::fromCORBA(tp, *corba); \
+                } \
+                \
+                static CORBA::Any_ptr createAny( BaseType const& tp ) \
+                { \
+                    std::auto_ptr< CORBA::Any > ret( new CORBA::Any() ); \
+                    if (!updateAny(tp, *ret)) return 0; \
+                    return ret.release(); \
+                } \
+                \
+                static bool updateAny( BaseType const& value, CORBA::Any& any ) \
+                { \
+                    std::auto_ptr<CorbaType> corba( new CorbaType ); \
+                    if (!::rtt_typekit_generator::corba::toCORBA(*corba, value)) return false; \
+                    any <<= corba.release(); \
+                    return true; \
+                } \
+            }; \
+        } \
+    }
+BOOST_PP_REPEAT(TYPE_CNT, ANY_CONVERSION, BOOST_PP_EMPTY)
+
+
+namespace rtt_typekit_generator {
 
 class @_typekit_CNAME@CorbaTransportPlugin
     : public RTT::types::TransportPlugin
 {
 public:
     virtual bool registerTransport(std::string type_name, RTT::types::TypeInfo* ti) {
-        if(ti->hasProtocol(ORO_CORBA_PROTOCOL_ID))
+        if (ti->hasProtocol(ORO_CORBA_PROTOCOL_ID))
             return false;
 
         #define ADD_PROTOCOL(z, i, _2) \
             if (TYPE_NAME(i) == type_name) { \
                 return ti->addProtocol(ORO_CORBA_PROTOCOL_ID, \
-                    new RTT::corba::CorbaTemplateProtocol< TYPE(i) >()); \
+                    new RTT::corba::CorbaTemplateProtocol< ::TYPE(i) >()); \
             }
         BOOST_PP_REPEAT(TYPE_CNT, ADD_PROTOCOL, BOOST_PP_EMPTY);
 
@@ -83,4 +87,6 @@ public:
     }
 };
 
-ORO_TYPEKIT_PLUGIN(@_typekit_CNAME@CorbaTransportPlugin)
+}  // namespace rtt_typekit_generator
+
+ORO_TYPEKIT_PLUGIN(rtt_typekit_generator::@_typekit_CNAME@CorbaTransportPlugin)

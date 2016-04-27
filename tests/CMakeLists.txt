@@ -12,12 +12,15 @@ include_directories(${kdl_typekit_INCLUDE_DIRS})
 orocos_typekit_headers(
   foo-types
   HEADERS foo.h
-  TYPES foo::Simple foo::Vector foo::NestedStruct foo::EigenVector foo::NestedKDL
+  TYPES foo::Simple foo::Vector foo::NestedStruct foo::NestedStruct::Bar foo::EigenVector foo::NestedKDL
 )
 
 enable_testing()
 
+# Always build tests in the build directory
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+
 add_executable(foo-types-test test.cpp)
 target_link_libraries(foo-types-test foo-types_introspection gtest gtest_main)
 
-add_test(run-foo-types-test COMMAND ${CMAKE_CURRENT_BINARY_DIR}/foo-types-test)
+add_test(NAME run-foo-types-test COMMAND ${CMAKE_CURRENT_BINARY_DIR}/foo-types-test)

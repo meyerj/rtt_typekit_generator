@@ -121,8 +121,8 @@ protected:
     ContextStack *context_stack_;
     template <typename ContextDataT> friend class Context_;
 
-    typedef std::map<std::string, std::string> AttributesMap;
-    std::string stripAttributes(std::string name_and_attributes, AttributesMap &attributes);
+//    typedef std::map<std::string, std::string> AttributesMap;
+//    std::string stripAttributes(std::string name_and_attributes, AttributesMap &attributes);
 
 protected:
     std::string type_name_;

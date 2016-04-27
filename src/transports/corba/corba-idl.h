@@ -3,18 +3,17 @@
  *  All rights reserved.                                                      *
  ******************************************************************************/
 
-#ifndef RTT_TYPEKIT_GENERATOR_CORBA_IDL_H
-#define RTT_TYPEKIT_GENERATOR_CORBA_IDL_H
+#ifndef RTT_TYPEKIT_GENERATOR_TRANSPORTS_CORBA_CORBA_IDL_H
+#define RTT_TYPEKIT_GENERATOR_TRANSPORTS_CORBA_CORBA_IDL_H
 
 #include <rtt_typekit_generator/archive.h>
 #include <rtt_typekit_generator/generator.h>
+#include <rtt_typekit_generator/transports/corba/corba-types.h>
 
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/type_traits/is_class.hpp>
 #include <boost/utility/enable_if.hpp>
-
-#include "corba-types.h"
 
 #ifndef TYPEKIT_NAME_UPPER
     #define TYPEKIT_NAME_UPPER boost::algorithm::replace_all_copy(boost::algorithm::to_upper_copy(std::string(TYPEKIT_NAME)), "-", "_")
@@ -46,39 +45,35 @@ public:
     virtual std::string getPartName() const { return "idl"; }
 
     virtual void generate(std::ostream *stream);
-    template <typename MemberT> std::ostream &generateMember(const std::string &name, MemberT &value, AttributesMap &attributes);
+    template <typename MemberT> std::ostream &generateMember(const std::string &name, MemberT &value);
 
     virtual std::string getStruct();
-    template <typename MemberT> std::string getNativeType(const std::string &name, MemberT &value, AttributesMap &attributes);
-    template <typename MemberT> std::string getStructType(const std::string &name, MemberT &value, AttributesMap &attributes);
-    template <typename SequenceT> std::string getSequenceType(const std::string &name, SequenceT &sequence, AttributesMap &attributes);
-
-    template <typename MemberT> void introspect(const char *name_and_attributes, MemberT &value, T &) {
-        AttributesMap attributes;
-        std::string name = stripAttributes(name_and_attributes, attributes);
-        generateMember<MemberT>(name, value, attributes);
-    }
 
     template <typename MemberT> std::string getType(
             const std::string &name,
-            typename boost::enable_if< typename Type<MemberT>::is_native, MemberT >::type &value,
-            AttributesMap &attributes) {
-        return getNativeType<MemberT>(name, value, attributes);
+            typename boost::enable_if< typename Type<MemberT>::is_native, MemberT >::type &value) {
+        return getNativeType<MemberT>(name, value);
     }
+    template <typename MemberT> std::string getNativeType(const std::string &name, MemberT &value);
 
     template <typename MemberT> std::string getType(
             const std::string &name,
-            typename boost::enable_if< typename Type<MemberT>::is_sequence, MemberT >::type &sequence,
-            AttributesMap &attributes) {
-        return getSequenceType<MemberT>(name, sequence, attributes);
-    }
-
-    template <typename MemberT> std::string getType(
-            const std::string &name,
-            typename boost::enable_if< typename Type<MemberT>::is_struct, MemberT >::type &value,
-            AttributesMap &attributes)
+            typename boost::enable_if< typename Type<MemberT>::is_struct, MemberT >::type &value)
     {
-        return getStructType<MemberT>(name, value, attributes);
+        return getStructType<MemberT>(name, value);
+    }
+    template <typename MemberT> std::string getStructType(const std::string &name, MemberT &value);
+
+    template <typename MemberT> std::string getType(
+            const std::string &name,
+            typename boost::enable_if< typename Type<MemberT>::is_sequence, MemberT >::type &sequence) {
+        return getSequenceType<MemberT>(name, sequence);
+    }
+    template <typename SequenceT> std::string getSequenceType(const std::string &name, SequenceT &sequence);
+
+    template <typename MemberT> void introspect(const char *name_, MemberT &value, T &) {
+        std::string name(name_ ? name_ : "");
+        generateMember<MemberT>(name, value);
     }
 
 private:
@@ -125,12 +120,12 @@ void IDLPartGenerator<T>::generate(std::ostream *_stream) {
 
     stream() << "// type '" << getTypeName() << "'" << std::endl;
     stream() << indent(2) << "module rtt_typekit_generator {" << std::endl;
-    stream() << indent(2) << "module corba {" << std::endl;
     for(Namespaces::const_iterator it = getNamespaces().begin();
         it != getNamespaces().end();
         ++it) {
         stream() << indent(2) << "module " << *it << " {" << std::endl;
     }
+    stream() << indent(2) << "module corba {" << std::endl;
 
     stream() << indent() << getStruct() << ";" << std::endl;
 
@@ -166,10 +161,9 @@ std::string IDLPartGenerator<T>::getStruct() {
 template <typename T> template <typename MemberT>
 std::ostream &IDLPartGenerator<T>::generateMember(
         const std::string &name,
-        MemberT &field,
-        AttributesMap &attributes)
+        MemberT &field)
 {
-    stream() << indent() << getType<MemberT>(name, field, attributes);
+    stream() << indent() << getType<MemberT>(name, field);
     if (!name.empty()) {
         stream() << " " << name << ";" << std::endl;
     } else {
@@ -182,8 +176,7 @@ std::ostream &IDLPartGenerator<T>::generateMember(
 template <typename T> template <typename MemberT>
 std::string IDLPartGenerator<T>::getNativeType(
         const std::string &name,
-        MemberT &field,
-        AttributesMap &attributes)
+        MemberT &field)
 {
     return Type<MemberT>::getIDLTypeName();
 }
@@ -191,8 +184,7 @@ std::string IDLPartGenerator<T>::getNativeType(
 template <typename T> template <typename MemberT>
 std::string IDLPartGenerator<T>::getStructType(
         const std::string &name,
-        MemberT &value,
-        AttributesMap &attributes)
+        MemberT &value)
 {
     std::string nested_type_name;
 
@@ -201,12 +193,6 @@ std::string IDLPartGenerator<T>::getStructType(
     {
         std::string type_name = name + "Type";
         std::string c_type_name = getCTypeName() + "_" + std::string(name) + "_type";
-        if (attributes.count("name")) {
-            type_name = attributes.at("name");
-        }
-        if (attributes.count("type")) {
-            c_type_name = attributes.at("type");
-        }
         IDLPartGenerator<MemberT> member_generator(
                     this, type_name, c_type_name, value);
 
@@ -222,15 +208,14 @@ std::string IDLPartGenerator<T>::getStructType(
 template <typename T> template <typename SequenceT>
 std::string IDLPartGenerator<T>::getSequenceType(
         const std::string &name,
-        SequenceT &sequence,
-        AttributesMap &attributes)
+        SequenceT &sequence)
 {
     typedef typename SequenceT::value_type value_type;
     value_type prototype;
-    return "sequence<" + getType<value_type>(name, prototype, attributes) + ">";
+    return "sequence<" + getType<value_type>(name, prototype) + ">";
 }
 
 }  // namespace corba
 }  // namespace rtt_typekit_generator
 
-#endif // RTT_TYPEKIT_GENERATOR_CORBA_IDL_H
+#endif // RTT_TYPEKIT_GENERATOR_TRANSPORTS_CORBA_CORBA_IDL_H

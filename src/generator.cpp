@@ -116,10 +116,11 @@ std::string PartGeneratorBase::getCFullName() const
 
 std::string PartGeneratorBase::getCCorbaName() const
 {
-    std::string name = "::rtt_typekit_generator::corba::";
+    std::string name = "::rtt_typekit_generator::";
     for(Namespaces::const_iterator it = namespaces_.begin(); it != namespaces_.end(); ++it) {
         name += *it + "::";
     }
+    name += "corba::";
     name += c_type_name_;
     return name;
 }
@@ -129,34 +130,34 @@ void PartGeneratorBase::setNamespacePrefix(const std::string &prefix)
     namespace_prefix_.reset(new std::string(prefix));
 }
 
-std::string PartGeneratorBase::stripAttributes(std::string name_and_attributes, AttributesMap &attributes)
-{
-    size_t attribute_separator_pos = 0;
-    std::string name;
-    while(!name_and_attributes.empty()) {
-        attribute_separator_pos = name_and_attributes.find(";", attribute_separator_pos);
-        if (attribute_separator_pos == std::string::npos) attribute_separator_pos = name_and_attributes.size();
-        if (name.empty()) {
-            name = name_and_attributes.substr(0, attribute_separator_pos);
-        } else {
-            std::string element = name_and_attributes.substr(0, attribute_separator_pos);
-            size_t keyvalue_separator_pos = element.find("=");
-            if (keyvalue_separator_pos != std::string::npos) {
-                attributes[element.substr(0, keyvalue_separator_pos)] = element.substr(keyvalue_separator_pos + 1);
-            } else {
-                attributes[element]; // create if attribute does not exist, but do not overwrite
-            }
-        }
+//std::string PartGeneratorBase::stripAttributes(std::string name_and_attributes, AttributesMap &attributes)
+//{
+//    size_t attribute_separator_pos = 0;
+//    std::string name;
+//    while(!name_and_attributes.empty()) {
+//        attribute_separator_pos = name_and_attributes.find(";", attribute_separator_pos);
+//        if (attribute_separator_pos == std::string::npos) attribute_separator_pos = name_and_attributes.size();
+//        if (name.empty()) {
+//            name = name_and_attributes.substr(0, attribute_separator_pos);
+//        } else {
+//            std::string element = name_and_attributes.substr(0, attribute_separator_pos);
+//            size_t keyvalue_separator_pos = element.find("=");
+//            if (keyvalue_separator_pos != std::string::npos) {
+//                attributes[element.substr(0, keyvalue_separator_pos)] = element.substr(keyvalue_separator_pos + 1);
+//            } else {
+//                attributes[element]; // create if attribute does not exist, but do not overwrite
+//            }
+//        }
 
-        try {
-            name_and_attributes = name_and_attributes.substr(attribute_separator_pos + 1);
-        } catch(std::out_of_range&) {
-            break;
-        }
-    }
+//        try {
+//            name_and_attributes = name_and_attributes.substr(attribute_separator_pos + 1);
+//        } catch(std::out_of_range&) {
+//            break;
+//        }
+//    }
 
-    return name;
-}
+//    return name;
+//}
 
 TransportGeneratorBase::~TransportGeneratorBase()
 {}

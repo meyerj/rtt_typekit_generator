@@ -49,6 +49,7 @@ bool introspect_adl(Archive& ar, const T& t, const BOOST_PFTO unsigned int file_
 
 
 namespace rtt_typekit_generator {
+namespace introspection {
 namespace details {
 
 template <typename T>
@@ -208,27 +209,29 @@ private:
     std::string name_;
 };
 
-class MemberAccessorInterface {
+class AccessorInterface {
 public:
-    virtual ~MemberAccessorInterface() {}
+    virtual ~AccessorInterface() {}
+    virtual ValueInterface get(void *instance) const = 0;
+    virtual const ValueInterface get(const void *instance) const = 0;
 };
 
 template <typename T>
-class MemberAccessorBase : public MemberAccessorInterface {
+class Accessor : public AccessorInterface {
 public:
-    virtual ValueInterface get(T *instance) const = 0;
-    virtual const ValueInterface get(const T *instance) const = 0;
+    virtual ValueInterface get(void *instance) const { return ValueInterface(static_cast<T *>(instance)); }
+    virtual const ValueInterface get(const void *instance) const { return ValueInterface(static_cast<const T *>(instance)); }
 };
 
 template <typename T, typename MemberT>
-class MemberAccessor : public MemberAccessorBase<T> {
+class MemberAccessor : public AccessorInterface {
 public:
     typedef MemberT (T::*pointer_type);
     MemberAccessor(pointer_type p)
         : p_(p) {}
 
-    virtual ValueInterface get(T *instance) const { return ValueInterface(&(instance->*p_)); }
-    virtual const ValueInterface get(const T *instance) const { return ValueInterface(&(instance->*p_)); }
+    virtual ValueInterface get(void *instance) const { return ValueInterface(&(static_cast<T *>(instance)->*p_)); }
+    virtual const ValueInterface get(const void *instance) const { return ValueInterface(&(static_cast<const T *>(instance)->*p_)); }
 
 private:
     pointer_type p_;
@@ -276,14 +279,14 @@ public:
 
     virtual ValueInterface getMemberValue(void *instance, const std::string& name) const {
         const Member *member = getMember(name);
-        if (!member) return ValueInterface();
-        return boost::static_pointer_cast< MemberAccessorBase<T> >(member->accessor)->get(static_cast<T *>(instance));
+        if (!member || !member->accessor) return ValueInterface();
+        return member->accessor->get(instance);
     }
 
     virtual const ValueInterface getMemberValue(const void *instance, const std::string& name) const {
         const Member *member = getMember(name);
-        if (!member) return ValueInterface();
-        return boost::static_pointer_cast< MemberAccessorBase<T> >(member->accessor)->get(static_cast<const T *>(instance));
+        if (!member || !member->accessor) return ValueInterface();
+        return member->accessor->get(instance);
     }
 
     // Arbitrary reference
@@ -291,7 +294,7 @@ public:
     Members::iterator introspect(const char *name, MemberT &t, const T &instance) {
         Members::iterator member = members_.insert(members_.end(), Member());
         if (name) member->name = name;
-        // member->accessor.reset(new MemberAccessor<T, MemberT>(instance, t));
+        // member->accessor.reset(new Accessor<T>());
         return member;
     }
 
@@ -323,6 +326,7 @@ private:
 };
 
 }  // namespace details
+}  // namespace introspection
 }  // namespace rtt_typekit_generator
 
 #endif  // RTT_TYPEKIT_GENERATOR_DETAILS_INTROSPECTION_H

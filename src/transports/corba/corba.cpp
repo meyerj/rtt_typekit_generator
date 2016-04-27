@@ -71,6 +71,8 @@ void TransportGenerator::generate(const std::string &output_directory) {
             << "#ifndef RTT_TYPEKIT_GENERATOR_" << TYPEKIT_NAME_UPPER << "_CONVERSIONS_HPP" << std::endl
             << "#define RTT_TYPEKIT_GENERATOR_" << TYPEKIT_NAME_UPPER << "_CONVERSIONS_HPP" << std::endl
             << std::endl
+            << "#include <rtt_typekit_generator/transports/corba/corba-types.h>" << std::endl
+            << std::endl
             << "#include \"" << TYPEKIT_NAME << "/typekit/includes.h\"" << std::endl
             << "#include \"" << TYPEKIT_NAME << "/typekit/types.h\"" << std::endl
             << "#include \"" << TYPEKIT_NAME << "TypesC.h\"" << std::endl

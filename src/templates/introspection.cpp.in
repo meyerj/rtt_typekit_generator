@@ -11,14 +11,18 @@
 
 #include <boost/preprocessor.hpp>
 
+
+
 using namespace rtt_typekit_generator;
 
 namespace rtt_typekit_generator {
+namespace introspection {
 
-#define DECLARE_TYPE_INTROSPECTION(z, i, _2) \
-    template class details::TypeIntrospection<TYPE(i)>; \
-    details::TypeIntrospection<TYPE(i)> type##i(TYPE_NAME(i));
+#define DECLARE_TYPE_INTROSPECTION(z, i, _) \
+    template class details::TypeIntrospection< ::TYPE(i) >; \
+    details::TypeIntrospection< ::TYPE(i) > C_VARIABLE(i)(TYPE_NAME(i));
 
 BOOST_PP_REPEAT(TYPE_CNT, DECLARE_TYPE_INTROSPECTION, BOOST_PP_EMPTY)
 
+}  // namespace introspection
 }  // namespace rtt_typekit_generator

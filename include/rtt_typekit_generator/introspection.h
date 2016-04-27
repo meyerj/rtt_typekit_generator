@@ -13,6 +13,7 @@
 #include <boost/shared_ptr.hpp>
 
 namespace rtt_typekit_generator {
+namespace introspection {
 
 typedef const std::type_info *TypeId;
 
@@ -43,7 +44,7 @@ private:
 };
 
 namespace details {
-class MemberAccessorInterface;
+class AccessorInterface;
 }  // namespace details
 
 
@@ -52,7 +53,7 @@ class TypeIntrospectionInterface;
 struct Member {
     std::string name;
     boost::shared_ptr<TypeIntrospectionInterface> type;
-    boost::shared_ptr<details::MemberAccessorInterface> accessor;
+    boost::shared_ptr<details::AccessorInterface> accessor;
 };
 typedef std::vector<Member> Members;
 typedef std::vector<std::string> MemberNames;
@@ -93,6 +94,7 @@ public:
     }
 };
 
+}  // namespace introspection
 }  // namespace rtt_typekit_generator
 
 #endif  // RTT_TYPEKIT_GENERATOR_INTROSPECTION_H

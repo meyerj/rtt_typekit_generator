@@ -17,7 +17,7 @@
 
 #include <iostream>
 
-#define EXPLICIT_TEMPLATE_INSTANTIATION(z, i, _2) \
+#define EXPLICIT_TEMPLATE_INSTANTIATION(z, i, _) \
     template class RTT_EXPORT RTT::internal::DataSource< TYPE(i) >; \
     template class RTT_EXPORT RTT::internal::AssignableDataSource< TYPE(i) >; \
     template class RTT_EXPORT RTT::internal::ValueDataSource< TYPE(i) >; \
@@ -30,6 +30,8 @@
 
 BOOST_PP_REPEAT(TYPE_CNT, EXPLICIT_TEMPLATE_INSTANTIATION, BOOST_PP_EMPTY)
 
+namespace rtt_typekit_generator {
+
 class @_typekit_CNAME@TypekitPlugin
     : public RTT::types::TypekitPlugin
 {
@@ -39,7 +41,7 @@ public:
     }
 
     virtual bool loadTypes() {
-        #define LOAD_TYPE(z, i, _2) \
+        #define LOAD_TYPE(z, i, _) \
             RTT::types::TypeInfoRepository::Instance()->addType( \
                 new RTT::types::StructTypeInfo<TYPE(i), \
                     boost::has_left_shift<std::ostream, TYPE(i)>::value && \
@@ -55,4 +57,6 @@ public:
     virtual bool loadGlobals() { return true; }
 };
 
-ORO_TYPEKIT_PLUGIN(@_typekit_CNAME@TypekitPlugin)
+}  // namespace rtt_typekit_generator
+
+ORO_TYPEKIT_PLUGIN(rtt_typekit_generator::@_typekit_CNAME@TypekitPlugin)

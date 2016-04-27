@@ -60,7 +60,8 @@ namespace serialization {
 
 template <class Archive>
 void serialize(Archive& ar, foo::Simple& v, const unsigned int /* version */) {
-    ar & boost::serialization::make_nvp("member", v.member);
+    ar & v.member;
+//    ar & boost::serialization::make_nvp("member", v.member);
 }
 
 template <class Archive>
@@ -126,7 +127,7 @@ static std::string accessor(KDL::Rotation &, const std::string &value, const std
     throw std::runtime_error("Unexpected member '" + member + "' of type KDL::Vector");
 }
 
-}
-}
+}  // corba
+}  // rtt_typekit_generator
 
 #endif // RTT_TYPEKIT_GENERATOR_TESTS_INCLUDE_FOO_H

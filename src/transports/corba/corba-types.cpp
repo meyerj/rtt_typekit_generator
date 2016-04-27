@@ -3,8 +3,8 @@
  *  All rights reserved.                                                      *
  ******************************************************************************/
 
+#include <rtt_typekit_generator/transports/corba/corba-types.h>
 #include <cxxabi.h>
-#include "corba-types.h"
 
 namespace rtt_typekit_generator {
 namespace corba {
