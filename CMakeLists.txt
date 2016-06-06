@@ -72,7 +72,7 @@ install(FILES
   "${CMAKE_CURRENT_BINARY_DIR}/install/cmake/${PROJECT_NAME}Config.cmake"
   "${CMAKE_CURRENT_BINARY_DIR}/install/cmake/${PROJECT_NAME}ConfigVersion.cmake"
   cmake/orocos_typekit_headers.cmake
-  cmake/orocos_typekit_headers-cmake2-helpers.cmake
+  cmake/orocos_typekit_headers-cmake-helpers.cmake
   DESTINATION share/${PROJECT_NAME}/cmake
 )
 

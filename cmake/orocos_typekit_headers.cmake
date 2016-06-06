@@ -1,8 +1,6 @@
 include(CMakeParseArguments)
 
-if(CMAKE_MAJOR_VERSION LESS 3)
-  include(${CMAKE_CURRENT_LIST_DIR}/orocos_typekit_headers-cmake2-helpers.cmake)
-endif()
+include(${CMAKE_CURRENT_LIST_DIR}/orocos_typekit_headers-cmake-helpers.cmake)
 
 macro(orocos_generate_typekit_headers name)
   # For now there can be only one typekit per package:
@@ -167,10 +165,11 @@ macro(orocos_generate_typekit_headers name)
     ${rtt_typekit_generator_SOURCE_DIR}/transports/corba/corba.cpp
     ${rtt_typekit_generator_SOURCE_DIR}/transports/corba/corba-types.cpp
   )
-  target_compile_options(${_typekit_TARGET}_generator PRIVATE
-    -include ${_typekit_INCLUDE_DIR}/includes.h
-    -include ${_typekit_INCLUDE_DIR}/types.h
+  rtt_typekit_generator_target_compile_options(${_typekit_TARGET}_generator PRIVATE
+    -include${_typekit_INCLUDE_DIR}/includes.h
+    -include${_typekit_INCLUDE_DIR}/types.h
   )
+
   set_source_files_properties(
     ${rtt_typekit_generator_SOURCE_DIR}/generator.cpp
     ${rtt_typekit_generator_SOURCE_DIR}/transports/corba.cpp
